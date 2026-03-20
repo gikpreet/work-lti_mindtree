@@ -1,0 +1,6 @@
+= App Migration Runbooks
+
+* link:./AppService_Migration/AppService-Migration.adoc[Azure Appservice Migration/Deployment]
+* link:./ARO-containerized-to-openshift/ARO-containerized-to-openshift.adoc[Managed RedHat OpenShift를 Azure ARO(RedHat OpenShift)로 마이그레이션]
+* link:./containerize-dotnet-app/containerize-dotnet-app.adoc[Containerize an .NET Application]
+* link:./containerized-to-aks/app.adoc[실습을 위한 ASP.NET Core App 작성]

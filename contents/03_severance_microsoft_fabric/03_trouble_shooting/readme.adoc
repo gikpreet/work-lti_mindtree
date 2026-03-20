@@ -1,0 +1,3 @@
+= Trouble Shooting
+
+* link:./01_embed_tag.adoc[Embed Tag 사용 불가 문제]

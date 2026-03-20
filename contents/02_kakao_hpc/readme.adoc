@@ -45,3 +45,7 @@
 . link:./02_tech_desc/03_security/04_operation_administration_security.adoc[Azure HPC 운영 및 관리 보안]
 . link:./02_tech_desc/03_security/05_compliance.adoc[규정 준수]
 . link:./02_tech_desc/03_security/06_azure_hpc_security.adoc[HPC 관점에서 본 Azure 보안]
+
+== 최종 전달 문서
+
+link:./03_final_delivered_version/readme.adoc[최종 전달 버전]

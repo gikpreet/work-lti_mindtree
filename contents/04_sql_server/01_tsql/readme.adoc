@@ -1,0 +1,3 @@
+= T-SQL
+
+* link:./01_encryped_function.adoc[암호화되어 작성된 SQL Function 복호화]

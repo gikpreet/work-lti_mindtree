@@ -1,0 +1,4 @@
+= Microsoft Azure Private Link
+
+1. link:./01_private_link.adoc[Microsoft Azure Private Link]
+2. link:./02_private_link_permission_level.adoc[Microsoft Fabric에서 Private Link 구성 및 관리 권한]

@@ -1,0 +1,4 @@
+= Microsoft Fabric
+
+1. link:./01_introduction.adoc[Microsoft Fabric 개요]
+2. link:./02_permission_management.adoc[권한 관리]
