@@ -1,0 +1,80 @@
+= Azure HPC 데이터 보안
+:sectnums:
+:toc:
+
+HPC의 특성상 데이터는 대규모, 민감성, 실시간 처리가 요구되므로, 단순 암호화가 아니라 저장·전송·사용 단계 모두를 아우르는 통합적인 보안 설계가 필요합니다.
+
+== Azure HPC 데이터 보안
+
+Azure HPC 보안은 크게 보호 계층 설계, 접근 통제, 암호화, 네트워크 격리, 모니터링 및 규제 준수로 구성할 수 있습니다.
+
+. 보호 계층 설계(Layered Protection)
+* 저장 데이터 보호(At-Rest) +
+AES 256-bit 암호화, 고객 관리 키(CMK) 사용 가능, HPC Cache 암호화
+* 전송 데이터 보호(In-Transit) +
+TLS/SSL, RDMA/InfiniBand 환경에서 애플리케이션 수준 암호화, Private Link 사용
+* 사용 중 데이터 보호(In-Use) +
+Confidential Computing(TEEs, SGX/SEV-SNP) 적용
+
+. 접근 통제 및 인증
+* Azure AD + RBAC(Least Privilege) 기반 권한 관리
+* MFA(다단계 인증) 적용, 관리 계정은 Just-In-Time(JIT) 방식으로 제한
+* Private Endpoint 및 NSG(Network Security Group)로 데이터 접근 경로 제한
+
+. 네트워크 격리(Network Isolation)
+* HPC VM, HPC Cache, 스토리지, 관리 계층을 별도 VNet/서브넷에 배치
+* Hub-and-Spoke 아키텍처를 적용하여 중앙 허브에서 방화벽과 DDoS 보호 관리
+* RDMA/InfiniBand 통신 전용 서브넷 유지
+
+. 모니터링 및 로그 분석(Monitoring & Auditing)
+* NSG Flow Logs, Network Watcher, Traffic Analytics 활용
+* Azure Monitor, Log Analytics, SIEM(Microsoft Sentinel) 연계
+* 데이터 접근, 전송, 이상 트래픽을 실시간 탐지 및 감사
+
+. 규제 준수(Compliance)
+* ISO 27001, HIPAA, GDPR 등 글로벌 규제 준수
+* 데이터 암호화 및 접근 제어 정책을 문서화하여 감사 대응
+
+== HPC 데이터 보안 구축
+
+Azure HPC 환경에서 데이터 보안을 위해서는 데이터의 저장, 전송, 접근, 관리 등 모든 단계에서 다층적인 보안 전략을 적용하는 것이 필수적입니다. 먼저, 저장된 데이터의 보호를 위해 Azure Storage 계정에서 제공하는 암호화 기능을 활용하는 것이 좋습니다. Azure는 기본적으로 저장 데이터를 AES-256 방식으로 암호화하며, 고객이 직접 관리하는 키(CMK)를 적용하여 데이터 접근 제어를 강화할 수 있습니다. 또한 HPC 클러스터 내 파일 시스템이나 데이터베이스에 대해서도 Azure Disk Encryption 또는 Azure Key Valut를 활용한 암호화 관리를 적용함으로써 데이터 노출 위험을 최소화할 수 있습니다.
+
+데이터 전송 과정에서는 네트워크 레벨에서의 보호가 중요합니다. Azure HPC는 전용 고속 네트워크 및 가상 네트워크(VNet) 환경을 제공하며, VPN 또는 ExpressRoute와 같은 전용 회선을 통해 데이터를 안전하게 전송할 수 있습니다. 특히 내부 HPC 노트 간 통신에서 TLS/SSL 기반 암호화를 적용하여 전송 중 데이터의 무결성과 기밀성을 보장해야 합니다.
+
+접근 관리 측면에서는 정교한 인증과 권한 부여 체계가 요구됩니다. Azure Active Directory와 RBAC을 사용하여 HPC 리소스와 데이터에 대한 접근 권한을 최소 권한 원칙(Principle of Least Privilege)에 따라 설정하고, 다중 인증(MFA)을 적용함으로써 계정 탈취나 내부자 위협으로 부터 보호할 수 있습니다. 또한, 민감 데이터에 대한 접근 로그를 실시간으로 수집하고 Azure Monitor 및 Sentinel과 연계하여 보인 이벤트 감지 및 대응 체계를 유지하믕로써 보안 사고 발생 시 신속히 대응할 수 있습니다.
+
+마지막으로, 데이터 보안 구축 과정에서는 규정 준수와 감사가 필수적입니다. Azure는 GDPR, ISO 28991, HIPAA등 다양한 국제 표준과 규정을 준수하고 있으며, HPC 환겨에서도 이러한 정책을 반영한 데이터 보안 정책 수립과 주기적인 감사 체계를 운영함으로써 조지그이 법적, 정책적 요구사항을 충족할 수 있습니다. 따라서 Azure HPC 환경에서 데이터 보안을 구축하려면 암호화, 안전한 전송, 접근 관리, 모니터링, 규정 준수의 다섯 가지 요소를 통합적으로 고려하는 전략적 접근이 필요합니다.
+
+== 체크 리스트
+
+실제 구축시 단계별 데이터 보안 체크 리스트를 아래와 같으 작성할 수 있습니다.
+
+. 데이터 암호화 (Data Encryption)
+* Azure Storage 계정 암호화(AES-256) 활성화
+* Customer Managed Key(CMK) 적용 여부 확인
+* Azure Disk Encryption 및 Key Vault를 통한 HPC 노드 데이터 암호화
+* 민감 데이터에 대한 추가 암호화 정책 수립
+. 안전한 데이터 전송 (Secure Data Transmission)
+* VNet 환경 구성 및 전용 네트워크 설계
+* VPN 또는 ExpressRoute 연결을 통한 데이터 전송
+* 내부 HPC 노드 통신 시 TLS/SSL 적용
+* 데이터 전송 로그 수집 및 모니터링 체계 구축
+. 접근 관리 (Access Control)
+* Azure Active Directory와 RBAC 기반 권한 설정
+* 최소 권한 원칙(Least Privilege) 적용
+* 다중 인증(MFA) 적용 여부 확인
+* 민감 데이터 접근 로그 수집 및 감사
+. 모니터링 및 보안 대응 (Monitoring & Response)
+* Azure Monitor, Sentinel 등 보안 이벤트 수집
+* 이상 접근 시 알림 및 자동 대응 정책 설정
+* 주기적 보안 점검 및 취약점 분석 수행
+. 규정 준수 및 감사 (Compliance & Audit)
+* GDPR, ISO 27001, HIPAA 등 적용 가능 규정 확인
+* 규정 기반 데이터 보안 정책 수립
+* 주기적 내부/외부 감사 수행
+* 보안 정책 업데이트 및 개선 프로세스 마련
+
+---
+
+link:./01_network_security.adoc[이전: Azure HPC 네트워크 보안] |
+link:./03_access_control_id_management.adoc[다음: Azure HPC 접근 제어 및 아이덴티티 관리]

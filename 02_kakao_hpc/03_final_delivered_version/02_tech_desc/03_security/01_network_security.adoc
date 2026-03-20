@@ -1,0 +1,122 @@
+= Azure HPC 네트워크 보안
+:sectnums:
+:toc:
+
+Azure HPC의 네트워크 보안은 
+
+1. 물리·논리적 격리(전용 서브넷·VNet·구독 분리) 
+2. 데이터 전송 보호(전송·저장·실행 중 데이터 보호)
+3. 경계·동작 보호(방화벽·DDoS·접근통제)
+4. 가시성·탐지(로그·Flow·SIEM)
+5. 성능과 보안의 균형(예: RDMA/InfiniBand 특성 고려)
+
+을 동시에 만족시켜야 합니다. 핵심 컴포넌트(InfiniBand/RDMA 지원 VM, HPC Cache, Private Link 등)는 각각 보안 요구사항과 제약이 있으므로 설계 단계에서 명확히 규정해야 합니다.
+
+== 네트워크 분리·토폴로지 (설계 원칙)
+
+=== Hub-and-Spoke (권장)
+
+관리·보안(허브)에 Azure Firewall, 로그 수집, DDoS 보호 등을 두고, 계산(스포크)·스토리지(스포크)·관리(스포크)로 분리하여 ‘폭발 반경(blast radius)’을 줄입니다. VNet 피어링 또는 Virtual WAN을 통해 연결하되, 경계에서는 정책(방화벽/정책 기반 라우팅)을 적용합니다. 
+
+https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenarios/azure-hpc/network-topology-connectivity?utm_source=chatgpt.com[Network topology and connectivity for Azure HPC]
+
+=== 전용 서브넷 규칙
+
+HPC 전용 자원(HB/HC/N 시리즈 VM, HPC Cache 등)은 별도 서브넷에 배치합니다. 예: Azure HPC Cache는 전용 서브넷(최소 IP 수량 요구 등)과 내부 통신 허용 설정이 필요합니다. 해당 서브넷에는 다른 VM을 배치하지 않는 것이 권장됩니다.
+
+https://docs.azure.cn/en-us/hpc-cache/hpc-cache-prerequisites?utm_source=chatgpt.com[Prerequisites for Azure HPC Cache]
+
+== 내부 통신(클러스터·RDMA/InfiniBand) 보안
+
+=== RDMA/InfiniBand 특성
+
+Azure의 HB/HC/N 시리즈 VM은 InfiniBand / RDMA 기반 저지연 네트워크를 사용하여 대규모 MPI/RDMA 워크로드를 지원합니다. RDMA 트래픽은 Azure의 전용 패브릭 내에서 처리되며, 일련의 VM/서브넷 구성·확장 규칙(같은 VM scale set/서브넷 등)을 만족해야 정상적으로 동작합니다. RDMA는 고성능을 위해 설계되었으나 네트워크 가시성 및 전통적 검사(패킷 검사)는 제한될 수 있으므로 보안 설계 시 특별 고려가 필요합니다. 
+https://learn.microsoft.com/en-us/azure/virtual-machines/setup-infiniband?utm_source=chatgpt.com[Set up InfiniBand]
+== 권장 대응
+
+* RDMA/InfiniBand 노드는 서로 격리된 전용 서브넷에 배치하고, 해당 서브넷 내에서만 통신하도록 구성(외부 접근 차단). +
+https://docs.azure.cn/en-us/hpc-cache/hpc-cache-prerequisites?utm_source=chatgpt.com[Prerequisites for Azure HPC Cache]
+* RDMA 트래픽은 애플리케이션/노드 계층에서의 접근 제어와 VM 이미지 하드닝(권한·서비스 최소화)으로 보완. (네트워크 레벨 암호화가 필요한 경우에는 애플리케이션 수준 암호화 또는 기밀 컴퓨팅을 검토)
+
+== 경계 보안 - 외부 접근 통제
+
+=== Public IP 최소화
+
+VM NIC에 Public IP를 붙이지 않고, 관리 접속은 Private Bastion을 통해 수행(SSH/RDP는 Azure Bastion 또는 점프박스 → bastion 권장). Bastion 사용 시 VM에 공개 포트 노출이 필요 없습니다. 
+
+https://learn.microsoft.com/en-us/azure/bastion/bastion-overview?utm_source=chatgpt.com[What is Azure Bastion?]
+
+=== Azure Firewall / 보안 허브
+
+허브에 Azure Firewall을 배치하여 중앙에서 인바운드/아웃바운드 정책, FQDN 필터링, 위협 인텔리전스 차단을 적용합니다. IDPS(침입탐지/방지)는 성능 영향이 있으므로 먼저 모니터링/Alert 모드로 테스트 후 운영 모드(deny) 적용을 권장합니다. 
+
+https://learn.microsoft.com/en-us/azure/well-architected/service-guides/azure-firewall?utm_source=chatgpt.com[Architecture best practices for Azure Firewall]
+
+=== DDoS 보호
+
+Azure DDoS Protection(Standard)를 VNet에 적용하여 대규모 트래픽 공격으로부터 보호합니다(특히 관리·포털·공개 엔드포인트가 있는 경우 필수). 아키텍처 설계 단계에서 DDoS 완화 포인트(예: 퍼블릭 로드밸런서 앞) 등을 명확히 해야 합니다.
+
+https://learn.microsoft.com/en-us/azure/ddos-protection/fundamental-best-practices?utm_source=chatgpt.com[Azure DDoS Protection fundamental best practices]
+
+== 서비스·스토리지 연결 보안 (프라이빗 연결)
+
+=== Private Link / Private Endpoints
+
+Azure Storage, Azure Cache 등 PaaS 서비스는 Public endpoint 대신 Private Endpoint(Private Link)를 사용하여 트래픽이 Microsoft 네트워크 외부로 나가지 않도록 구성합니다. 이는 데이터 유출 리스크를 크게 줄입니다.
+
+=== HPC Cache 특성
+
+HPC Cache는 온프레미스 스토리지와 Azure 사이에서 고속 캐시 계층을 제공하므로 전용 서브넷, NSG 규칙, 필요 포트·프로토콜에 대한 세심한 허용 정책이 요구됩니다. (문서상 HPC Cache 서브넷은 내부 통신이 자유로워야 하므로 NSG 구성 시 예외를 명확히 문서화)
+
+https://learn.microsoft.com/en-us/security/benchmark/azure/baselines/azure-hpc-cache-security-baseline?utm_source=chatgpt.com[Azure security baseline for Azure HPC Cache]
+
+== 접근 제어 맟 관리 보안
+
+=== Identity & Access
+
+Azure AD + RBAC으로 권한 최소화(Least Privilege). 관리자는 별도 관리 구독/네트워크를 사용하여 일반 워크로드와 분리합니다.
+
+=== 관리 접속 보호
+
+Azure Bastion으로 RDP/SSH를 제공하고, 추가로 MFA·조건부 접근 정책을 적용. 관리 계정은 Just-In-Time(JIT) 방식으로 제한적으로 발급.
+
+== 가시성 및 로깅 탐지
+
+=== NSG / VNet Flow Logs → Traffic Analytics
+
+NSG(또는 VNet) flow 로그를 활성화하여 흘러가는 트래픽을 로깅하고, Traffic Analytics/Log Analytics로 통합 분석해 비정상 트래픽·스캔·데이터 이동을 탐지합니다. 네트워크 흐름 로깅은 탐지·조사·규정 준수 증빙에 필수입니다.
+
+https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview?utm_source=chatgpt.com&tabs=Americas[Flow logging for network security groups]
+
+=== Network Watcher & Azure Monitor Network Insights
+
+네트워크 상태·토폴로지·연결 문제·성능 지표를 모니터링합니다. 이와 연계해 SIEM(예: Microsoft Sentinel)으로 로그를 전송하면 탐지→대응(Runbook)까지 자동화할 수 있습니다.
+
+https://learn.microsoft.com/en-us/azure/network-watcher/network-insights-overview?utm_source=chatgpt.com[Network insights]
+
+== 체크리스트
+
+배포 및 운영시 확인해야 할 체크리스트는 아래와 같습니다.
+
+. 전용 구독/리소스 그룹으로 HPC 프로젝트 분리
+. VNet 설계: hub-and-spoke, 전용 서브넷(컴퓨트, HPC Cache, 관리) 구성
++
+https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenarios/azure-hpc/network-topology-connectivity?utm_source=chatgpt.com[Network topology and connectivity for Azure HPC]
+. Public IP 최소화: VM NIC에 Public IP 금지; Bastion으로 관리 +
+https://learn.microsoft.com/en-us/azure/bastion/bastion-overview?utm_source=chatgpt.com[What is Azure Bastion?]
+. Private Link 사용: 스토리지·PaaS는 Private Endpoint로만 연결 +
+https://azure.microsoft.com/en-us/products/private-link?utm_source=chatgpt.com[Private Link]
+. NSG/ASG 정책: 최소 권한 원칙, 인바운드 최소화, 내부 통신 예외 문서화(특히 HPC Cache·RDMA 서브넷) +
+https://docs.azure.cn/en-us/hpc-cache/hpc-cache-prerequisites?utm_source=chatgpt.com[Prerequisites for Azure HPC Cache]
+. Azure Firewall + DDoS Standard 적용: 허브에서 중앙 통제(정책·로깅) +
+https://learn.microsoft.com/en-us/azure/well-architected/service-guides/azure-firewall?utm_source=chatgpt.com[Architecture best practices for Azure Firewall]
+. 모니터링 활성화: Network Watcher, NSG/VNet flow logs → Traffic Analytics, Azure Monitor 통합 +
+https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview?utm_source=chatgpt.com&tabs=Americas[low logging for network security groups]
+. 로그 보관·SIEM 연계: 규정 준수 보관 기간 설정 및 자동 경보(악성 트래픽, 데이터 전송량 급증 등) 설정
+. 테스트: IDPS/방화벽 정책 성능 영향 테스트(특히 RDMA 워크로드), 장애·DDOS 시나리오 DR 테스트
+. 문서화·운영 절차: 네트워크 변경(예: NSG 규칙 변경) 시점·책임자·롤백 절차 명시
+
+---
+
+link:./00_introduction.adoc[이전: Azure HPC를 위한 보안 구성] |
+link:./02_data_security.adoc[다음: Azure HPC 데이터 보안]

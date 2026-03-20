@@ -1,0 +1,128 @@
+= InfiniBand 구성
+:sectnums:
+:toc:
+
+Azure CycleCloud에서 InfiniBand를 구성하는 방법은 InfiniBand를 지원하는 VM 시리즈를 선택하는 것에서 시작하며, 대부분의 설정은 CycleCloud에 의해 자동화됩니다. 
+
+InfiniBand 구성은 올바른 VM 종류(SKU)를 구성하는 것에서 시작하며, 올바른 VM을 구성했다면 CycleCloud의 jetpack 에이전트가 노드 부팅시 자동으로 필요한 드라이버(Mellanox OFED)를 설치하고 네트워크를 구성합니다.
+
+== InfiniBand 지원 가상 머신 지정
+
+가장 중요한 단계로, Slurm 클러스터 생성 단계 또는 클러스터 템플릿에서 InfiniBand 네트워킹을 지원하는 HPC용 VM 시리즈를 선택해야 합니다. 주요 VM 시리즈는 다음과 같습니다.
+
+* HB 시리즈 +
+`HB`, `HBv2`, `HBv3`, `HBv4`(메모리 대역폭 최적화)
+* HC 시리즈: +
+`HC44rs` (코어 성능 최적화)
+* ND 시리즈 +
+`NDv4`, `NDv5` (GPU 및 네트워킹 최적화)
+
+== Cloud-int 스크립트를 사용해 명시적으로 지정 (생략 가능)
+
+Azure HPC 이미지와 지원 VM을 선택하면 드라이버는 **자동으로 설치**됩니다. 
+
+Slurm 작업이 InfiniBand를 사용하도록 **명시적(수동)**으로 지시하려면, 특정 MPI 라이브러리(예: Intel MPI, HPC-X)를 설치하고 관련 환경 변수를 설정해야 할 수 있습니다.
+
+이 작업은 cluster-init 스크립트를 통해 모든 컴퓨팅 노드에 자동으로 적용할 수 있습니다.
+
+아래는 Intel MPI를 사용하여 InfiniBand를 명시적으로 사용하도록 설정하는 스크립트입니다.
+
+[source, bash]
+----
+[[node compute]]
+# ...
+[[[cluster-init]]]
+    [[[script install-mpi-and-configure]]]
+    script = """
+        #!/bin/bash
+        set -ex
+
+        # HPC-X MPI 설치 (HPC 이미지에 종종 포함되어 있음)
+        # 또는 Intel MPI 설치 스크립트 실행
+        # /opt/intel/oneapi/mpi/latest/bin/mpivars.sh 스크립트가 존재한다고 가정
+
+        # Slurm이 시작되기 전에 MPI 환경 변수 설정
+        # 이 설정은 모든 Slurm 작업에 적용됨
+        mkdir -p /etc/slurm/conf.d
+
+        cat << EOF > /etc/slurm/conf.d/mpi.conf
+        # Intel MPI가 InfiniBand (UCX 프레임워크)를 사용하도록 강제
+        I_MPI_FABRICS=shm:ofi
+        I_MPI_OFI_PROVIDER=ucx
+        
+        # UCX가 InfiniBand 및 공유 메모리 전송만 사용하도록 설정
+        UCX_TLS=rc,sm,self
+        EOF
+
+        # Slurm 데몬이 이 설정을 인식하도록 재시작
+        systemctl restart slurmd
+    """
+----
+
+위 스크립트는 실행될 때 아래와 같은 설정을 수행합니다.
+
+* `I_MPI_FABRICS=shm:ofi` +
+Intel MPI에게 공유 메모리(shm)와 OpenFabrics Interface(ofi)를 사용하도록 지시합니다.
+* `UCX_TLS=rc,sm,self` +
+OFI의 UCX 프로바이더가 안정적인 InfiniBand 통신 방식인 rc(Reliable Connected)를 사용하도록 설정합니다.
+
+== 구성 확인
+
+클러스터가 실행된 후, 로그인 노드를 통해 컴퓨팅 노드에 접속하여 InfiniBand가 올바르게 작동하는지 확인할 수 있습니다.
+
+1. IB 하드웨어 확인 +
+`ibstat` 또는 `ibv_devinfo` 명령어를 실행하여 InfiniBand 장치가 `ACTIVE` 상태인지 확인합니다.
++
+[source, bash]
+----
+[cycleadmin@hpc-1 ~]$ ibstat
+CA 'mlx5_0'
+    CA type: MT4121
+    Number of ports: 1
+    Firmware version: 16.28.4512
+    Hardware version: 0
+    Node GUID: 0x...
+    System image GUID: 0x...
+    Port 1:
+        State: Active
+        Physical state: LinkUp
+        Rate: 100
+        Base lid: 0
+        LMC: 0
+        SM lid: 0
+        Capability mask: 0x...
+        Port GUID: 0x...
+        Link layer: InfiniBand
+----
++
+2. MPI 벤치마크 실행 +
+`sbatch` 를 사용하여 간단한 MPI 벤치마크 작업을 제출하여 노드 간 통신 성능(지연 시간, 대역폭)을 테스트합니다.
++
+* 작업 스크립트 (osu_latency_test.sbatch)
++
+----
+#!/bin/bash
+#SBATCH --job-name=IB-test
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+
+# Intel MPI 환경 로드
+source /opt/intel/oneapi/mpi/latest/bin/mpivars.sh
+
+# OSU Latency 벤치마크 실행
+mpirun osu_latency
+----
++
+* 작업 제출
++
+[source, bash]
+----
+sbatch osu_latency_test.sbatch
+----
+
+결과에서 매우 낮은 지연시간(마이크로초 단위)이 확인된다면 InfiniBand가 성공적으로 구성된 것 입니다.
+
+---
+
+link:./06_lustre.adoc[이전: Lustre 구성]

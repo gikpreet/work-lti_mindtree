@@ -1,0 +1,47 @@
+= Microsoft Azure에서 CycleCloud/Slurm/Lustre 기반 HPC 배포 가이드
+
+이 문서 패키지에서는 Microsoft Azure에서 동작하는 CycleCloud 기반의 HPC 환경을 배포하는 방법을 안내합니다.
+
+이 문서는 Microsoft Azure 환경에서 HPC를 위한 네트워크 환경을 구성하고, Azure CycleCloud를 배포하며, CycleCloud에서 프로젝트를 사용하여 템플릿을 사용자 정의하고 고성능 컴퓨팅의 핵심 요소인 Slurm 스케줄러와 Lustre 병렬 파일 시스템을 구성하여 HPC 클러스터를 배포하는 모든 절차에 대한 가이드를 제공합니다.
+
+또한, HPC 클러스터를 배포하고 사용하는 환경에 대한 기본적인 이해를 위해 slurm, enroot, cyclecloud등의 구성요소에 대한 기본적인 개념과 아키텍처를 설명합니다.
+
+== Table of Contents
+
+=== 배포 가이드
+
+1. link:./01_guide/00_introduction.adoc[개요: Microsoft Azure에서 CycleCloud를 사용하는 Slurm/Enroot/Lustre 기반 HPC 구성]
+2. link:./01_guide/00-1_prerequisite.adoc[사전 준비 사항]
+3. link:./01_guide/01_vnet_subnet_bastion.adoc[네트워크 환경 구성 (Virtual Network, Subnet, Bastion)]
+4. link:./01_guide/02_cyclecloud_storage.adoc[Azure CycleCloud 배포]
+5. link:./01_guide/03_slurm_cluster.adoc[Slurm 클러스터 생성 및 배포]
+6. link:./01_guide/04_template.adoc[CycleCloud 프로젝트를 사용한 사용자 정의 템플릿을 사용한 클러스터 배포]
+7. link:./01_guide/05_enroot.adoc[사용자 정의 CycleCloud project를 사용하여 Enroot로 NVIDIA GPU 워크로드 실행]
+8. link:./01_guide/06_lustre.adoc[Azure Managed Lustre 구성]
+9. link:./01_guide/07_infiniBand.adoc[InfiniBand 구성]
+
+=== 기술 개요 및 아키텍처
+
+1. link:./02_tech_desc/01_azure/[Microsoft Azure 기술 개요]
+. link:./02_tech_desc/01_azure/01_subscription.adoc[Azure 구독(Subscription)]
+. link:./02_tech_desc/01_azure/02_resource_groyup.adoc[리소스 그룹(Resource Group)]
+. link:./02_tech_desc/01_azure/03_vnet.adoc[가상 네트워크(Virtual Network)]
+. link:./02_tech_desc/01_azure/04_azure_bastion.adoc[Azure 배스천(Bastion)]
+. link:./02_tech_desc/01_azure/05_storage.adoc[저장소 계정(Storage Account)]
+. link:./02_tech_desc/01_azure/06_azure_cyclecloud.adoc[Azure CycleCloud]
+. link:./02_tech_desc/01_azure/07_managed_id.adoc[관리 ID(Managed ID)]
+2. link:./02_tech_desc/02_hpc/[HPC 개요]
+. link:./02_tech_desc/02_hpc/01_overview_hpc.adoc[HPC 개요]
+. link:./02_tech_desc/02_hpc/02_slurm.adoc[Slurm 기술 개요]
+. link:./02_tech_desc/02_hpc/03_enroot.adoc[Enroot 기술 개요]
+. link:./02_tech_desc/02_hpc/04_azure_managed_lustre.adoc[Azure Managed Lustre 기술 개요]
+. link:./02_tech_desc/02_hpc/05_hpc_on_cloud.adoc[클라우드 환경에서의 HPC]
+. link:./02_tech_desc/02_hpc/06_hpc_on_azure.adoc[Microsoft Azure의 HPC]
+. link:./02_tech_desc/02_hpc/07_azure_hpc_architecture.adoc[Microsoft Azure HPC 아키텍처]
+3. 보안
+. link:./02_tech_desc/03_security/01_network_security.adoc[Azure HPC 네트워크 보안]
+. link:./02_tech_desc/03_security/02_data_security.adoc[Azure HPC 데이터 보안]
+. link:./02_tech_desc/03_security/03_access_control_id_management.adoc[Azure HPC 접근 제어 및 아이덴티티 관리]
+. link:./02_tech_desc/03_security/04_operation_administration_security.adoc[Azure HPC 운영 및 관리 보안]
+. link:./02_tech_desc/03_security/05_compliance.adoc[규정 준수]
+. link:./02_tech_desc/03_security/06_azure_hpc_security.adoc[HPC 관점에서 본 Azure 보안]

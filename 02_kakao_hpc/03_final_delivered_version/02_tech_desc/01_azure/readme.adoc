@@ -1,0 +1,11 @@
+= 주요 Azure 기술 개요와 실습에 사용되는 주요 Azure 서비스 
+
+1. link:./01_subscription.adoc[Azure 구독(Subscription)]
+2. link:./02_resource_group.adoc[리소스 그룹(Resource Group)]
+3. link:./03_vnet.adoc[가상 네트워크(Virtual Network)]
+4. link:./04_azure_bastion.adoc[Azure 배스천(Bastion)]
+5. link:./05_storage.adoc[Azure 저장소 계정(Azure Storage Account)]
+6. link:./06_azure_cyclecloud.adoc[Azure CycleCloud 기술 개요]
+7. link:./07_managed_id.adoc[관리 ID(Managed ID)]
+
+---
